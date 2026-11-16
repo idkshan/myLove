@@ -37,7 +37,7 @@
   var WAXFLOWERS = 6;             // little clusters in the gaps, per slice
   var BREATH_CLUSTERS = 3;        // clouds of baby's breath in the gaps, per slice
 
-  var ROTATE_SPEED = 0.07;        // how fast it turns: a full turn in about 90 seconds (0 = no turning)
+  var ROTATE_SPEED = 0.08;        // how fast it turns: a full turn in about 90 seconds (0 = no turning)
 
   // The small galaxy pool the bouquet stands over: a swirl of dots with spiral arms
   var POOL_COLOURS = ["#fff0f7", "#ff8fc4", "#b77cf2", "#6f7dff"];   // from the bright middle out to the edge

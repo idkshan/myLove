@@ -178,6 +178,12 @@ window.MEDIA = {
           "h": 1600
         },
         {
+          "src": "media/5th/her3.jpg",
+          "name": "her3.jpg",
+          "w": 1200,
+          "h": 1600
+        },
+        {
           "src": "media/5th/together1.jpg",
           "name": "together1.jpg",
           "w": 1600,

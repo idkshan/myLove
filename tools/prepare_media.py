@@ -1,29 +1,36 @@
-"""Prepare the photos and songs in the Us folder for the website.
+"""Get the photos and songs in media/ ready for the website.
+
+How to use it:
+  1. Put new photos straight into a chapter folder, e.g. media/3rd/together3.jpg
+     Name them her1, her2, ... (shown first) or together1, together2, ... (shown after).
+     Any of .jpg, .jpeg or .png works, and capital letters are fine.
+  2. To remove a photo, just delete it from its folder.
+  3. Run this from the project folder:
+         python tools/prepare_media.py
 
 What it does:
-  - Reads Us/1st ... Us/7th (and Us/song.mp3 for the bouquet).
-  - Shrinks each photo to web size, fixes its rotation, and removes hidden
-    data such as GPS location.
-  - Saves everything into media/ with lowercase names.
-  - Writes media/manifest.js, the list of photos the website reads.
+  - New or changed photos are shrunk to web size, turned the right way up,
+    cleaned of hidden data such as GPS location, and saved as lowercase .jpg.
+    Photos that are already done are left alone.
+  - Makes song file names lowercase (song.mp3).
+  - Rewrites media/manifest.js, the list of photos the website reads.
 
-Your original files in Us are never changed.
+New photos are replaced by their smaller web copies, so keep your own
+originals somewhere else (for example in your phone's gallery).
 
-Run it from the project folder:
-    python tools/prepare_media.py
+To see what it would do without changing anything:
+    python tools/prepare_media.py --check
 
-Order of photos in each chapter: her1, her2, ... then together1, together2, ...
 Videos are skipped for now.
 """
 import json
 import os
 import re
-import shutil
+import sys
 
 from PIL import Image, ImageOps
 
-SOURCE = "Us"
-OUTPUT = "media"
+MEDIA = "media"
 MAX_SIZE = 1600      # longest side, in pixels
 QUALITY = 82         # JPEG quality
 
@@ -37,67 +44,107 @@ def chapter_number(name):
     return int(match.group(1)) if match else None
 
 
-def save_photo(src, dest):
-    """Shrink, rotate correctly, drop hidden data, save as JPEG. Returns (width, height)."""
-    with Image.open(src) as img:
+def needs_work(path, final_name):
+    """True if this photo still has to be shrunk, cleaned or renamed."""
+    if os.path.basename(path) != final_name:
+        return True
+    with Image.open(path) as img:
+        return img.format != "JPEG" or max(img.size) > MAX_SIZE or len(img.getexif()) > 0
+
+
+def prepare_photo(path, dest):
+    """Shrink, turn the right way up, drop hidden data, save as JPEG at dest."""
+    with Image.open(path) as img:
         img = ImageOps.exif_transpose(img)
         img = img.convert("RGB")
         img.thumbnail((MAX_SIZE, MAX_SIZE), Image.LANCZOS)
-        img.save(dest, "JPEG", quality=QUALITY, optimize=True, progressive=True)
+        temp = dest + ".tmp"
+        img.save(temp, "JPEG", quality=QUALITY, optimize=True, progressive=True)
+    os.remove(path)                 # remove first, so a name that only changes case (Her1.JPG) is renamed properly
+    os.replace(temp, dest)
+
+
+def photo_size(path):
+    with Image.open(path) as img:
         return img.size
 
 
-def main():
-    if not os.path.isdir(SOURCE):
-        raise SystemExit("Can't find the '%s' folder. Run this from the project folder." % SOURCE)
-    os.makedirs(OUTPUT, exist_ok=True)
+def fix_song_name(folder, check):
+    """Finds song.mp3 in a folder (any capitals) and makes its name lowercase. Returns its path or None."""
+    for name in os.listdir(folder):
+        if name.lower() == "song.mp3":
+            if name != "song.mp3" and not check:
+                temp = os.path.join(folder, "song.tmp")
+                os.rename(os.path.join(folder, name), temp)
+                os.rename(temp, os.path.join(folder, "song.mp3"))
+            return "song.mp3"
+    return None
 
-    folders = sorted((f for f in os.listdir(SOURCE) if os.path.isdir(os.path.join(SOURCE, f)) and chapter_number(f)),
+
+def main():
+    check = "--check" in sys.argv
+    if not os.path.isdir(MEDIA):
+        raise SystemExit("Can't find the '%s' folder. Run this from the project folder." % MEDIA)
+
+    folders = sorted((f for f in os.listdir(MEDIA) if os.path.isdir(os.path.join(MEDIA, f)) and chapter_number(f)),
                      key=chapter_number)
-    chapters = []
+    chapters, changed = [], 0
 
     for folder in folders:
-        src_dir = os.path.join(SOURCE, folder)
-        out_dir = os.path.join(OUTPUT, folder.lower())
-        os.makedirs(out_dir, exist_ok=True)
+        folder_path = os.path.join(MEDIA, folder)
+        photos, skipped, notes = {}, [], []
 
-        photos, skipped = [], []
-        for name in os.listdir(src_dir):
+        for name in sorted(os.listdir(folder_path)):
             match = PHOTO.match(name)
             if match:
-                group = 0 if match.group(1).lower() == "her" else 1
-                photos.append((group, int(match.group(2)), name))
+                kind = match.group(1).lower()
+                key = (0 if kind == "her" else 1, int(match.group(2)))
+                if key in photos:
+                    notes.append("two photos called %s%d, skipped %s" % (kind, key[1], name))
+                    continue
+                photos[key] = name
             elif VIDEO.search(name):
                 skipped.append(name)
-        photos.sort()
 
         items = []
-        for group, number, name in photos:
-            out_name = "%s%d.jpg" % ("her" if group == 0 else "together", number)
-            width, height = save_photo(os.path.join(src_dir, name), os.path.join(out_dir, out_name))
-            items.append({"src": "%s/%s/%s" % (OUTPUT, folder.lower(), out_name), "name": out_name, "w": width, "h": height})
+        for (group, number) in sorted(photos):
+            name = photos[(group, number)]
+            final_name = "%s%d.jpg" % ("her" if group == 0 else "together", number)
+            path = os.path.join(folder_path, name)
+            dest = os.path.join(folder_path, final_name)
+            if needs_work(path, final_name):
+                changed += 1
+                notes.append("prepared " + (name if name == final_name else "%s -> %s" % (name, final_name)))
+                if not check:
+                    prepare_photo(path, dest)
+            width, height = photo_size(dest if os.path.exists(dest) else path)
+            items.append({"src": "%s/%s/%s" % (MEDIA, folder, final_name), "name": final_name, "w": width, "h": height})
 
-        song = None
-        if os.path.isfile(os.path.join(src_dir, "song.mp3")):
-            shutil.copyfile(os.path.join(src_dir, "song.mp3"), os.path.join(out_dir, "song.mp3"))
-            song = "%s/%s/song.mp3" % (OUTPUT, folder.lower())
+        song = fix_song_name(folder_path, check)
+        chapters.append({"folder": folder, "number": chapter_number(folder), "photos": items,
+                         "song": "%s/%s/%s" % (MEDIA, folder, song) if song else None})
 
-        chapters.append({"folder": folder.lower(), "number": chapter_number(folder), "photos": items, "song": song})
-        print("%-4s %2d photos%s%s" % (folder, len(items), "" if song else ", no song",
-                                     (", skipped videos: " + ", ".join(sorted(skipped))) if skipped else ""))
+        line = "%-4s %2d photos%s" % (folder, len(items), "" if song else ", no song")
+        if skipped:
+            line += ", skipped videos: " + ", ".join(skipped)
+        print(line)
+        for note in notes:
+            print("       " + note)
 
-    finale_song = None
-    if os.path.isfile(os.path.join(SOURCE, "song.mp3")):
-        shutil.copyfile(os.path.join(SOURCE, "song.mp3"), os.path.join(OUTPUT, "song.mp3"))
-        finale_song = "%s/song.mp3" % OUTPUT
+    finale_song = fix_song_name(MEDIA, check)
+    manifest = {"chapters": chapters, "finaleSong": "%s/%s" % (MEDIA, finale_song) if finale_song else None}
 
-    manifest = {"chapters": chapters, "finaleSong": finale_song}
-    with open(os.path.join(OUTPUT, "manifest.js"), "w", encoding="utf-8", newline="\n") as f:
+    if check:
+        print("Check only: nothing was changed. %d photo(s) would be prepared." % changed)
+        return
+
+    with open(os.path.join(MEDIA, "manifest.js"), "w", encoding="utf-8", newline="\n") as f:
         f.write("// Made by tools/prepare_media.py. Don't edit by hand: run the script again instead.\n")
         f.write("window.MEDIA = " + json.dumps(manifest, indent=2) + ";\n")
 
-    total = sum(os.path.getsize(os.path.join(root, n)) for root, _, names in os.walk(OUTPUT) for n in names)
-    print("Done: media/ is %.1f MB. Finale song: %s" % (total / 1e6, "yes" if finale_song else "missing"))
+    total = sum(os.path.getsize(os.path.join(root, n)) for root, _, names in os.walk(MEDIA) for n in names)
+    print("Done: %d photo(s) prepared, media/ is %.1f MB. Bouquet song: %s"
+          % (changed, total / 1e6, "yes" if finale_song else "missing"))
 
 
 if __name__ == "__main__":

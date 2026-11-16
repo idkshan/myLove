@@ -11,7 +11,7 @@
   /* ---- Settings ---- */
   var HEART_LIGHT = [1.0, 0.82, 0.9], HEART_MID = [0.96, 0.46, 0.66], HEART_DEEP = [0.7, 0.2, 0.44];
   var POOL_CORE = [1.0, 0.5, 0.76], POOL_EDGE = [0.78, 0.2, 0.5];
-  var SPIN = 0.32;            // how fast the scene turns
+  var SPIN = 0.34;            // how fast the scene turns
   var TEXT_AT = 7;            // seconds before the words start to appear (once the heart has formed)
   var BUTTON_AT = 11;         // seconds before the Open button appears
 
