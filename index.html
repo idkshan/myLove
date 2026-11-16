@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#140910">
+  <title>For My Love</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath fill='%23B04866' d='M16 28s-11-7-11-15a6 6 0 0 1 11-3.3A6 6 0 0 1 27 13c0 8-11 15-11 15z'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="is-locked">
+
+  <!-- 1. Start screen: one button before anything begins -->
+  <div class="gate" id="gate">
+    <button class="gate-btn" id="gate-btn" type="button" data-text="start.button"></button>
+  </div>
+
+  <!-- 2. Opening: the heart plays first, then the words and the Open button appear -->
+  <div class="welcome" id="welcome" hidden>
+    <span class="welcome-bar welcome-bar-top" aria-hidden="true"></span>
+    <span class="welcome-bar welcome-bar-bottom" aria-hidden="true"></span>
+    <div class="welcome-inner">
+      <div class="welcome-heart" id="welcome-heart" aria-hidden="true"><canvas id="welcome-heart-canvas"></canvas></div>
+      <div class="welcome-text" id="welcome-text">
+        <p class="eyebrow" data-text="welcome.eyebrow"></p>
+        <h1 class="welcome-greeting" data-text="welcome.greeting"></h1>
+        <p class="welcome-message" data-text="welcome.message"></p>
+        <button class="btn btn-light" id="welcome-open" type="button" data-text="welcome.button"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. The site: one page at a time -->
+  <canvas class="stars" id="stars" aria-hidden="true"></canvas>
+  <div class="site" id="site" hidden>
+    <main>
+      <!-- One page per time we met, built from content.js and media/manifest.js -->
+      <div class="chapters" id="chapters"></div>
+
+      <!-- Last page: the bouquet grows, a letter rises out of it, then the last message -->
+      <div class="page finale" id="page-finale" hidden>
+        <section class="section finale-stage" id="closing">
+          <canvas class="finale-dust" id="finale-dust" aria-hidden="true"></canvas>
+          <div class="finale-text">
+            <p class="finale-caption" data-text="flowers.caption"></p>
+            <div class="finale-last">
+              <p class="eyebrow" data-text="closing.eyebrow"></p>
+              <p class="finale-message" data-text="closing.message"></p>
+              <p class="finale-sign" id="finale-sign"></p>
+              <p class="finale-date" id="finale-date"></p>
+              <button class="finale-again" id="letter-again" type="button" data-text="letter.again"></button>
+            </div>
+          </div>
+
+          <div class="bouquet-wrap" id="bouquet-wrap">
+            <p class="envelope-prompt" data-text="letter.prompt"></p>
+            <div class="envelope-slot">
+              <button class="envelope" id="envelope" type="button" aria-label="Open the letter" disabled>
+                <span class="env-back" aria-hidden="true"></span>
+                <span class="env-card" id="env-card"></span>
+                <span class="env-front" aria-hidden="true"></span>
+                <span class="env-flap" aria-hidden="true"></span>
+                <span class="env-seal" aria-hidden="true"></span>
+              </button>
+            </div>
+            <canvas class="bouquet" id="bouquet" role="img" aria-label="A wrapped bouquet of pink tulips with roses, daisies, hyacinths, lilies and waxflowers, made of glowing dots, slowly growing and turning over a small galaxy"></canvas>
+          </div>
+
+          <!-- A small, faint button: hides all the words so only the flowers and the sky show -->
+          <button class="scene-only" id="scene-only" type="button" aria-pressed="false" aria-label="Hide the words"></button>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Fades the screen to dark between pages -->
+  <div class="curtain" id="curtain" aria-hidden="true"></div>
+
+  <!-- The letter -->
+  <dialog class="letter-dialog" id="letter-dialog" aria-label="Your letter">
+    <div class="letter-scroll" id="letter-scroll">
+      <article class="letter" id="letter-paper" tabindex="-1"></article>
+      <button class="btn btn-light" type="button" id="letter-close" data-close></button>
+    </div>
+  </dialog>
+
+  <!-- Full-screen photo viewer -->
+  <dialog class="lightbox" id="lightbox" aria-label="Photo viewer">
+    <button class="lb-btn lb-close" type="button" data-lb="close" aria-label="Close">&times;</button>
+    <button class="lb-btn lb-prev" type="button" data-lb="prev" aria-label="Previous photo">&#8249;</button>
+    <figure class="lb-figure">
+      <div class="lb-media" id="lb-media"></div>
+      <figcaption>
+        <p class="lb-caption" id="lb-caption"></p>
+        <p class="lb-description" id="lb-description"></p>
+        <p class="lb-count" id="lb-count"></p>
+      </figcaption>
+    </figure>
+    <button class="lb-btn lb-next" type="button" data-lb="next" aria-label="Next photo">&#8250;</button>
+  </dialog>
+
+  <!-- Music: "now playing" panel and the round button that shows/hides it -->
+  <aside class="player is-min" id="player" aria-label="Now playing" hidden></aside>
+  <button class="music" id="music" type="button" hidden></button>
+
+  <script src="content.js"></script>
+  <script src="media/manifest.js"></script>
+  <script src="js/utils.js"></script>
+  <script src="js/points.js"></script>
+  <script src="js/lightbox.js"></script>
+  <script src="js/music.js"></script>
+  <script src="js/chapters.js"></script>
+  <script src="js/pages.js"></script>
+  <script src="js/stars.js"></script>
+  <script src="js/letter.js"></script>
+  <script src="js/bouquet.js"></script>
+  <script src="js/reveal.js"></script>
+  <script src="js/welcome.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
